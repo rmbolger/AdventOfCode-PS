@@ -21,6 +21,41 @@ param(
         $active
     }
 
+    # Function to "run" a cycle
+    function Invoke-Cycle {
+        [CmdletBinding()]
+        param([hashtable]$g)
+
+        # clone the grid so we can modify it while we
+        # process the original state
+        $gNew = $g.Clone()
+        Write-Verbose "$($g.Count) active points"
+
+        $allNeighbors = $g.Keys | ForEach-Object {
+            Get-Neighbors $_
+        }
+        Write-Verbose "$($allNeighbors.Count) total neighbors"
+        $pointsToCheck = $allNeighbors + $g.Keys | Select-Object -unique
+        Write-Verbose "$($pointsToCheck.Count) unique points to check"
+
+        $pointsToCheck | ForEach-Object {
+            $nc = Get-ActiveNeighborCount $_ $g
+            #Write-Verbose "$((IntToCoord $cVal) -join ',') has $nc active neighbors"
+            if ($g.$_ -and $nc -notin 2,3) {
+                # go inactive
+                $gNew.Remove($_)
+            }
+            elseif (-not $g.$_ -and $nc -eq 3) {
+                # go active
+                $gNew.$_ = 1
+            }
+        }
+
+        # return the updated grid
+        $gNew
+    }
+
+
 
 # Part 1
 if (-not $NoPart1) {
@@ -46,62 +81,33 @@ if (-not $NoPart1) {
         $x,$y,$z
     }
 
+    $nCache = @{}
+
     # Function that will return the list of encoded
     # coordinates that make up a given coordinate's neighbors.
     function Get-Neighbors {
         [CmdletBinding()]
         param([int]$cVal)
-        # there might be a more clever/efficient way to do these deltas
-        # with bit math, but we'll deal with that if it's a problem later
-        $x,$y,$z = IntToCoord $cVal
 
-        foreach ($dx in -1..1) {
-            foreach ($dy in -1..1) {
-                foreach ($dz in -1..1) {
-                    if ($dx -eq 0 -and
-                        $dy -eq 0 -and
-                        $dz -eq 0)
-                    { continue }
-                    CoordToInt ($x+$dx) ($y+$dy) ($z+$dz)
-                }
-            }
-        }
-    }
+        $cachedResult = $nCache[$cVal]
+        if (-not $cachedResult) {
+            [int]$x,[int]$y,[int]$z = IntToCoord $cVal
 
-    # Function to "run" a cycle given a range for each axis to check
-    function Invoke-Cycle {
-        [CmdletBinding()]
-        param(
-            [hashtable]$g,
-            [int[]]$xRange,
-            [int[]]$yRange,
-            [int[]]$zRange
-        )
-
-        # clone the grid so we can modify it while we
-        # process the original state
-        $gNew = $g.Clone()
-
-        foreach ($x in $xRange) {
-            foreach ($y in $yRange) {
-                foreach ($z in $zRange) {
-                    $cVal = CoordToInt $x $y $z
-                    $nc = Get-ActiveNeighborCount $cVal $g
-                    #Write-Verbose "$((IntToCoord $cVal) -join ',') has $nc active neighbors"
-                    if ($g.$cVal -and $nc -notin 2,3) {
-                        # go inactive
-                        $gNew.Remove($cVal)
-                    }
-                    elseif (-not $g.$cVal -and $nc -eq 3) {
-                        # go active
-                        $gNew.$cVal = 1
+            $cachedResult = foreach ($dx in -1..1) {
+                foreach ($dy in -1..1) {
+                    foreach ($dz in -1..1) {
+                        if ($dx -eq 0 -and
+                            $dy -eq 0 -and
+                            $dz -eq 0)
+                        { continue }
+                        CoordToInt ($x+$dx) ($y+$dy) ($z+$dz)
                     }
                 }
             }
-        }
 
-        # return the updated grid
-        $gNew
+            $nCache[$cVal] = $cachedResult
+        }
+        return $cachedResult
     }
 
     # Load the active points from our input data into our grid hashtable.
@@ -111,7 +117,6 @@ if (-not $NoPart1) {
     $x = $y = $z = 6
     $grid = @{}
     Get-Content $InputFile | ForEach-Object {
-        $startWidth = $_.Length
         $_.ToCharArray() | ForEach-Object {
             if ($_ -eq '#') {
                 # encode the coordinate and save it as active
@@ -123,18 +128,9 @@ if (-not $NoPart1) {
         $y++
     }
 
-    # In each cycle, the grid we need to check expands outwards by 1 in
-    # in all directions.
-    $xs = $ys = $zs = $ze = 6
-    $xe = $ye = 6 + $startWidth - 1
-    for ($cycle=1; $cycle -le 6; $cycle++) {
-        Write-Verbose "Cycle $cycle"
-        # calc the axes ranges to check
-        $xr = ($xs - $cycle)..($xe + $cycle)
-        $yr = ($ys - $cycle)..($ye + $cycle)
-        $zr = ($zs - $cycle)..($ze + $cycle)
-
-        $grid = Invoke-Cycle $grid $xr $yr $zr
+    1..6 | %{
+        Write-Verbose "Cycle $_"
+        $grid = Invoke-Cycle $grid
     }
 
     Write-Host $grid.Count
@@ -169,66 +165,34 @@ if (-not $NoPart2) {
 
     # Create a function that will return the list of encoded
     # coordinates that make up a given coordinate's neighbors.
+    $nCache = @{}
+
     function Get-Neighbors {
         [CmdletBinding()]
         param([int]$cVal)
-        # there might be a more clever/efficient way to do these deltas
-        # with bit math, but we'll deal with that if it's a problem later
-        $w,$x,$y,$z = IntToCoord $cVal
 
-        foreach ($dw in -1..1) {
-            foreach ($dx in -1..1) {
-                foreach ($dy in -1..1) {
-                    foreach ($dz in -1..1) {
-                        if ($dw -eq 0 -and
-                            $dx -eq 0 -and
-                            $dy -eq 0 -and
-                            $dz -eq 0)
-                        { continue }
-                        CoordToInt ($w+$dw) ($x+$dx) ($y+$dy) ($z+$dz)
-                    }
-                }
-            }
-        }
-    }
+        $cachedResult = $nCache[$cVal]
+        if (-not $cachedResult) {
+            [int]$w,[int]$x,[int]$y,[int]$z = IntToCoord $cVal
 
-
-    function Invoke-Cycle {
-        [CmdletBinding()]
-        param(
-            [hashtable]$g,
-            [int[]]$wRange,
-            [int[]]$xRange,
-            [int[]]$yRange,
-            [int[]]$zRange
-        )
-
-        # clone the grid so we can modify it while we
-        # process the original state
-        $gNew = $g.Clone()
-
-        foreach ($w in $wRange) {
-            foreach ($x in $xRange) {
-                foreach ($y in $yRange) {
-                    foreach ($z in $zRange) {
-                        $cVal = CoordToInt $w $x $y $z
-                        $nc = Get-ActiveNeighborCount $cVal $g
-                        #Write-Verbose "$((IntToCoord $cVal) -join ',') has $nc active neighbors"
-                        if ($g.$cVal -and $nc -notin 2,3) {
-                            # go inactive
-                            $gNew.Remove($cVal)
-                        }
-                        elseif (-not $g.$cVal -and $nc -eq 3) {
-                            # go active
-                            $gNew.$cVal = 1
+            $cachedResult = foreach ($dw in -1..1) {
+                foreach ($dx in -1..1) {
+                    foreach ($dy in -1..1) {
+                        foreach ($dz in -1..1) {
+                            if ($dw -eq 0 -and
+                                $dx -eq 0 -and
+                                $dy -eq 0 -and
+                                $dz -eq 0)
+                            { continue }
+                            CoordToInt ($w+$dw) ($x+$dx) ($y+$dy) ($z+$dz)
                         }
                     }
                 }
             }
-        }
 
-        # return the updated grid
-        $gNew
+            $nCache[$cVal] = $cachedResult
+        }
+        return $cachedResult
     }
 
     # Or coordinate encoding scheme only works if the coordss stay positive.
@@ -237,7 +201,6 @@ if (-not $NoPart2) {
     $w = $x = $y = $z = 6
     $grid = @{}
     Get-Content $InputFile | ForEach-Object {
-        $startWidth = $_.Length
         $_.ToCharArray() | ForEach-Object {
             if ($_ -eq '#') {
                 # encode the coordinate and save it as active
@@ -251,17 +214,9 @@ if (-not $NoPart2) {
 
     # In each cycle, the grid we need to check expands outwards by 1 in
     # in all directions.
-    $ws = $xs = $ys = $ye = $zs = $ze = 6
-    $we = $xe = 6 + $startWidth - 1
-    for ($cycle=1; $cycle -le 6; $cycle++) {
-        Write-Verbose "Cycle $cycle"
-        # calc the axes ranges to check
-        $wr = ($ws - $cycle)..($we + $cycle)
-        $xr = ($xs - $cycle)..($xe + $cycle)
-        $yr = ($ys - $cycle)..($ye + $cycle)
-        $zr = ($zs - $cycle)..($ze + $cycle)
-
-        $grid = Invoke-Cycle $grid $wr $xr $yr $zr
+    1..6 | %{
+        Write-Verbose "Cycle $_"
+        $grid = Invoke-Cycle $grid
     }
 
     Write-Host $grid.Count
