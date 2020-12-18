@@ -5,56 +5,103 @@ param(
     [switch]$NoPart2
 )
 
-$lines = (Get-Content $InputFile).Trim()
+    $lines = (Get-Content $InputFile).Trim()
 
-$reParens = [regex]'\(([^)(]+)\)'
-$reSimpleOp = [regex]'(\d+ (\+|\*) \d+)'
-
-# Part 1
-if (-not $NoPart1) {
+    $reParens = [regex]'\(([^)(]+)\)'
+    $reSimpleOp = [regex]'(\d+ (\+|\*) \d+)'
+    $reAddOp = [regex]'(\d+ \+ \d+)'
 
     function SpecialMath {
         [CmdletBinding()]
         param(
             [Parameter(ValueFromPipeline)]
-            [string]$exp
+            [string]$exp,
+            [switch]$Part2
         )
 
         Process {
             $orig = $exp
 
-            # recursively evaluate the parenthesis expressions
-            #Write-Verbose $exp
+            # recursively evaluate the anything within a pair of ()'s
+            Write-Verbose $exp
             while ($exp -match $reParens) {
-                $result = SpecialMath $matches[1]
-                $exp = $exp.Replace($matches[0], $result)
-                #Write-Verbose $exp
+                $result = SpecialMath $matches[1] -Part2:$Part2.IsPresent
+                $reTemp = [regex]::new([regex]::Escape($matches[0]))
+                $exp = $reTemp.Replace($exp, $result, 1)
+                Write-Verbose $exp
             }
 
-            # now there should be no more parens, so just eval
-            # left to right by parsing each op pair with regex
+            if ($Part2) {
+                # eval all the additions first
+                while ($exp -match $reAddOp) {
+                    $result = $matches[0] | iex
+                    $reTemp = [regex]::new([regex]::Escape($matches[0]))
+                    $exp = $reTemp.Replace($exp, $result, 1)
+                    Write-Verbose $exp
+                }
+
+                # all that's left should be multiplication or a single
+                # number so eval the whole thing and return early
+                $result = $exp | iex
+                Write-Verbose $result
+                return [long]$result
+            }
+
+            # eval the rest left to right by parsing each op pair
             while ($exp -match $reSimpleOp) {
                 $result = $matches[0] | iex
-                $exp = $exp.Replace($matches[0], $result)
-                #Write-Verbose $exp
+                $reTemp = [regex]::new([regex]::Escape($matches[0]))
+                $exp = $reTemp.Replace($exp, $result, 1)
+                Write-Verbose $exp
             }
 
-            #try {
-                [long]$exp
-            #} catch { Write-Warning $orig }
+            [long]$exp
         }
 
     }
 
-    #$lines[0] | SpecialMath
-    $results = $lines | SpecialMath
-    Write-Verbose "$($lines.Count) lines"
-    Write-Verbose "$($results.Count) results"
-    $results | sort
-    $answer = ($results | Measure -Sum).Sum
-    #Write-Host $answer
+    # Alternative solution using PowerShell class and operator overloading
+    class N {
+        [long]$Value = 0
 
-    # 45283905003863 is wrong
+        N() {}
+
+        N([long]$Value) {
+            $this.Value = $Value
+        }
+
+        [long] GetValue() {
+            return $this.Value
+        }
+
+        static [N] op_Addition([N]$Left, [N]$Right) {
+            return [N]::new($Left.GetValue() + $Right.GetValue())
+        }
+
+        # Multiply
+        static [N] op_Subtraction([N]$Left, [N]$Right) {
+            return [N]::new($Left.GetValue() * $Right.GetValue())
+        }
+
+        # Addition
+        static [N] op_Multiply([N]$Left, [N]$Right) {
+            return [N]::new($Left.GetValue() + $Right.GetValue())
+        }
+    }
+
+# Part 1
+if (-not $NoPart1) {
+
+    $results = $lines | SpecialMath
+
+    # # Alternate solution
+    # $results = foreach ($line in $lines) {
+    #     $l = $line.Replace('*', '-')
+    #     $l = $l -replace '(\d+)', '[N]::new($1)'
+    #     (Invoke-Expression $l).Value
+    # }
+
+    Write-Host ($results | Measure -Sum).Sum
 
 }
 
@@ -62,5 +109,15 @@ if (-not $NoPart1) {
 # Part 2
 if (-not $NoPart2) {
 
+    $results = $lines | SpecialMath -Part2
+
+    # # Alternate solution
+    # $results = foreach ($line in $lines) {
+    #     $l = $line.Replace('*', '-').Replace('+', '*')
+    #     $l = $l -replace '(\d+)', '[N]::new($1)'
+    #     (Invoke-Expression $l).Value
+    # }
+
+    Write-Host ($results | Measure -Sum).Sum
 
 }
