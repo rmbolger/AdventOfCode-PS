@@ -28,7 +28,8 @@ switch -Regex ($ruleLines) {
 function BuildRegex {
     [CmdletBinding()]
     param(
-        [string]$r
+        [string]$r,
+        [switch]$Part2
     )
 
     #Write-Verbose "parse: $r"
@@ -38,8 +39,8 @@ function BuildRegex {
     if ($r.IndexOf('|') -gt 0) {
         $sides = $r.Split('|').Trim()
         $template = '(?:{0}|{1})'
-        $left = BuildRegex $sides[0]
-        $right = BuildRegex $sides[1]
+        $left = BuildRegex $sides[0] -Part2:$Part2.IsPresent
+        $right = BuildRegex $sides[1] -Part2:$Part2.IsPresent
         $parsed = $template -f $left,$right
         #Write-Verbose "returning $parsed"
         return $parsed
@@ -50,18 +51,15 @@ function BuildRegex {
     [int[]]$vals = $r -split ' '
     $parsed = ''
     foreach ($x in $vals) {
-        # if ($x -eq 8) {
-        #     if ($hit8) { Write-Verbose "skipped 8"; continue }
-        #     else { Write-Verbose "hit 8"; $hit8 = $true }
-        # }
-        # if ($x -eq 11) {
-        #     if ($hit11) { Write-Verbose "skipped 11"; continue }
-        #     else { Write-Verbose "hit 11"; $hit11 = $true }
-        # }
-        $result = BuildRegex $rules[$x]
+        $result = BuildRegex $rules[$x] -Part2:$Part2.IsPresent
+        if ($Part2 -and $x -eq 42) {
+            $result = '{0}+((?<open>{0})+' -f $result
+        }
+        if ($Part2 -and $x -eq 31) {
+            $result = '(?<close-open>{0})+(?(open)(?!)))' -f $result
+        }
         $parsed += $result
-        if ($x -eq 42) { $parsed += '{2,}' }
-        if ($x -eq 31) { $parsed += '+' }
+        #Write-Verbose "added $result"
     }
     #Write-Verbose "returning $parsed"
     return $parsed
@@ -85,14 +83,13 @@ if (-not $NoPart2) {
     #$rules[8] = '42 | 42 8'
     #$rules[11] = '42 31 | 42 11 31'
     $rules[11] = '31'
-    # $hit8 = $false
-    # $hit11 = $false
-    $re = [regex]"^$(BuildRegex $rules[0])$"
-    $re.ToString()
+    $re = [regex]"^$(BuildRegex $rules[0] -Part2)$"
+    #$re.ToString()
     $valid = $messages | ?{ $_ -match $re }
     Write-Host $valid.Count
 
     # 355 is wrong (too high)
+    # 350 is right
 
 }
 
