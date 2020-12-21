@@ -96,7 +96,7 @@ class Tile {
     }
 
     [Tile] Match([string]$sideVal,[string]$sideDir) {
-        # attempt to orient this tile so that the specified side direction
+        # attempt to orient this tile so that the specified side val
         # matches the specified side direction
         if ($sideDir -eq 'u') {
             if ($sideVal -eq $this.u) { return $this }
@@ -218,13 +218,55 @@ if (-not $NoPart1) {
 # Part 2
 if (-not $NoPart2) {
 
+    function Get-Roughness {
+        param(
+            [string]$Habitat,
+            [regex]$monster,
+            [int]$lg    # line gap, line width minus monster width
+        )
+
+        <#
+                            #
+            #    ##    ##    ###
+            #  #  #  #  #  #
+
+            #.............#...#..#...#.......#....#..........#...#..................#.#...###..##.#####..#####....#......#.........#.............##....#........#....#.....#....###...#....#..#..#..#.##..#
+            O.............#...#..#...#.......#....#..........#...#..................#.#...O##..OO.###OO..##OOO....#......#.........#.............##....#........#....#.....#....###...#....O..O..O..O.#O..O
+            0,78,83,84,89,90,95,96,97,175,178,181,184,187,190
+        #>
+
+        # build an array of indices where we will need to replace monster parts with O's
+        $lg2 = $lg * 2
+        $mIndicies = 0,($lg+2),($lg+7),($lg+8),($lg+13),($lg+14),($lg+19),($lg+20),($lg+21),($lg2+23),($lg2+26),($lg2+29),($lg2+32),($lg2+35),($lg2+38)
+
+        while ($Habitat -match $monster) {
+            $m = $matches[0]
+
+            # replace the monster characters with O's
+            $mChars = $m.ToCharArray()
+            $mIndicies | %{ $mChars[$_] = 'O' }
+
+            # replace this occurrence of the monster with the labeled copy
+            $reTemp = [regex]::new([regex]::Escape($m))
+            $Habitat = $reTemp.Replace($Habitat, ($mChars -join ''), 1)
+        }
+
+        # display the final puzzle in verbose output
+        $finalPuzzle = $Habitat -split "(.{$($lg+20)})" | ?{ $_ }
+        Write-Verbose "`n$($finalPuzzle -join "`n")"
+
+        # count the waves by stripping . and O characters
+        $waves = ($Habitat  -replace '\.|O').Length
+        Write-Verbose "waves $waves"
+        $waves
+    }
+
     # represent the final puzzle as a 2d array
     $puz = [Tile[][]]::new($puzWidth, $puzWidth)
     # and a flat array of "locked" tile IDs
     $locked = @()
     # and the final puzzle without the tile borders
     $puzInner = @()
-
 
     # find a corner and rotate it so it becomes the upper left
     # piece of the puzzle
@@ -299,54 +341,6 @@ if (-not $NoPart2) {
         }
     }
 
-    function Get-Roughness {
-        param(
-            [string]$Habitat,
-            [regex]$monster,
-            [int]$lg    # line gap, line width minus monster width
-        )
-
-        $origWaves = $Habitat.Replace('.','').Length
-        Write-Verbose "orig habitat waves $origWaves"
-
-        <#
-#.............#...#..#...#.......#....#..........#...#..................#.#...###..##.#####..#####....#......#.........#.............##....#........#....#.....#....###...#....#..#..#..#.##..#
-O.............#...#..#...#.......#....#..........#...#..................#.#...O##..OO.###OO..##OOO....#......#.........#.............##....#........#....#.....#....###...#....O..O..O..O.#O..O
-0{76+1}                                                                       0    00    00    000{76+1}                                                                       0  0  0  0  0  0
-0,78,83,84,89,90,95,96,97,175,178,181,184,187,190
-                  #
-#    ##    ##    ###
- #  #  #  #  #  #
-        #>
-
-        $lg2 = $lg * 2
-        $mIndicies = 0,($lg+2),($lg+7),($lg+8),($lg+13),($lg+14),($lg+19),($lg+20),($lg+21),($lg2+23),($lg2+26),($lg2+29),($lg2+32),($lg2+35),($lg2+38)
-
-        while ($Habitat -match $monster) {
-            $m = $matches[0]
-            # replace the monster characters with O's
-            $mChars = $m.ToCharArray()
-            $mIndicies | %{ $mChars[$_] = 'O' }
-            #Write-Verbose $m
-            #Write-Verbose ($mChars -join '')
-
-            # replace this occurrence of the monster with the labeled copy
-            $reTemp = [regex]::new([regex]::Escape($m))
-            $Habitat = $reTemp.Replace($Habitat, ($mChars -join ''), 1)
-            # # add the non-monster waves from the monster section
-            # $waves = $m.Replace('.','').Length
-            # Write-Verbose "add monster waves $($waves - 15) ($waves - 15)"
-            # $roughness += $waves - 15
-        }
-        $newWaves = ($Habitat  -replace '\.|O').Length
-        Write-Verbose "add habitat waves $newWaves"
-        $split = "(.{$($lg+20)})"
-        $finalPuzzle = $Habitat -split $split | ?{ $_ }
-        #$finalPuzzle | %{ Write-Verbose $_ }
-        Write-Verbose "`n$($finalPuzzle -join "`n")"
-        $newWaves
-    }
-
     # turn the inner puzzle into a big tile we can flip/rotate
     # if necessary
     $bigTile = [Tile]::new(0,$puzInner)
@@ -386,8 +380,5 @@ O.............#...#..#...#.......#....#..........#...#..................#.#...O#
     }
     Write-Host 'monster check failed - giving up'
     $bigTile.ToString()
-
-    # 1682 is too high (only 1 found monster per line)
-    # 1607 is correct
 
 }
