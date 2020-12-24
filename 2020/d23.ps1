@@ -5,36 +5,86 @@ param(
     [switch]$NoPart2
 )
 
+function Run-CupGame {
+    [CmdletBinding()]
+    param(
+        [int[]]$StartArray,
+        [int]$Turns,
+        [switch]$Part2
+    )
+
+    # build the cups linked list and store a reference to each node in a
+    # dictionary for quick lookups by value later
+    if ($Part2) {
+        $StartArray = [int[]]($StartArray + @(10..1000000))
+    }
+    $cupCount = ($Part2) ? 1000000 : 9
+    $cups = [Collections.Generic.LinkedList[int]]::new($StartArray)
+    $cupmap = [Collections.Generic.Dictionary[int,Collections.Generic.LinkedListNode[int]]]::new($cupCount)
+    $c = $cups.First
+    while ($c) {
+        $cupmap[$c.Value] = $c
+        $c = $c.Next
+    }
+
+    foreach ($turn in (1..$Turns)) {
+        $cup = $cups.First
+        $p1 = $cup.Next
+        $p2 = $p1.Next
+        $p3 = $p2.Next
+        $cups.Remove($p1)
+        $cups.Remove($p2)
+        $cups.Remove($p3)
+
+        # find the destination value
+        $dest = $cup.Value
+        do {
+            $dest--
+            if ($dest -lt 1) { $dest = $cupCount }
+        }
+        while ($dest -eq $p1.Value -or $dest -eq $p2.Value -or $dest -eq $p3.Value)
+
+        # lookup the cup reference and insert the pickups
+        $destCup = $cupmap.$dest
+        $cups.AddAfter($destCup, $p3)
+        $cups.AddAfter($destCup, $p2)
+        $cups.AddAfter($destCup, $p1)
+        # if (($turn % 100000) -eq 0) {
+        #     Write-Verbose "turn $turn - cup $($cup.Value) - pickup $(($pickup | %{ $_.Value }) -join ',') - dest = $($destCup.Value)"
+        # }
+
+        # move the current cup to the end so the next cup is first
+        [void] $cups.RemoveFirst()
+        [void] $cups.AddLast($cup)
+    }
+
+    if (-not $Part2) {
+        # return part 1 results
+        $parts = $cups -join '' -split '1'
+        return "$($parts[1])$($parts[0])"
+    }
+    else {
+        # return part 2 results
+        $cup1 = $cupmap[1]
+        $cupN = $cup1.Next
+        if (-not $cupN) {
+            $cupN = $cups.First
+            $cupNN = $cups.First.Next
+        } else {
+            $cupNN = $cupN.Next
+            if (-not $cupNN) { $cupNN = $cups.First }
+        }
+        return ($cupN.Value * $cupNN.Value)
+    }
+}
+
 $startArray = [int[]]($InputString.ToCharArray() | %{ [int]::Parse($_) })
 
 # Part 1
 if (-not $NoPart1) {
 
-    $cups = [Collections.Generic.List[int]]::new($startArray)
-
-    foreach ($turn in (1..100)) {
-        $cup = $cups[0]
-        $pickup = [int[]]$cups[1..3]
-        Write-Verbose "$($cups -join ',') - cup $cup - pickup $($pickup -join ',')"
-        $cups.RemoveRange(1,3)
-
-        # find the destination cup and insert the pickup
-        $dest = $cup - 1
-        while ($dest -notin $cups -or $dest -eq $cup) {
-            $dest--
-            if ($dest -lt 1) { $dest = 9 }
-        }
-        $insertAt = $cups.IndexOf($dest) + 1
-        $cups.InsertRange($insertAt, $pickup)
-        Write-Verbose "dest = $dest (index $($insertAt-1))"
-
-        # move the current cup to the end so the next cup is first
-        $cups.RemoveAt(0)
-        $cups.Add($cup)
-    }
-
-    $finalStart = ($cups.IndexOf(1) + 1) % 9
-    ($cups[($finalStart..($finalStart+7) | %{ $_ % 9})]) -join ''
+    $result = Run-CupGame $startArray 100
+    Write-Host $result
 
 }
 
@@ -42,33 +92,7 @@ if (-not $NoPart1) {
 # Part 2
 if (-not $NoPart2) {
 
-    $startArray = [int[]]($startArray + @(10..1000000))
-    $cups = [Collections.Generic.List[int]]::new($startArray)
-
-    foreach ($turn in (1..1000)) {
-        $cup = $cups[0]
-        $pickup = [int[]]$cups[1..3]
-        $cups.RemoveRange(1,3)
-
-        # find the destination cup and insert the pickup
-        $dest = $cup - 1
-        while ($dest -notin $cups -or $dest -eq $cup) {
-            $dest--
-            if ($dest -lt 1) { $dest = 1000000 }
-        }
-        $insertAt = $cups.IndexOf($dest) + 1
-        $cups.InsertRange($insertAt, $pickup)
-        # if (($turn % 100000) -eq 0) {
-        #     Write-Verbose "turn $turn - cup $cup - pickup $($pickup -join ',') - dest = $dest"
-        # }
-
-        # move the current cup to the end so the next cup is first
-        $cups.RemoveAt(0)
-        $cups.Add($cup)
-    }
-
-    $finalStart = $cups.IndexOf(1) + 1
-    $endCups = $cups[($finalStart..($finalStart+1) | %{ $_ % 1000000})]
-    $endCups[0] * $endCups[1]
+    $result = Run-CupGame $startArray 10000000 -Part2
+    Write-Host $result
 
 }
