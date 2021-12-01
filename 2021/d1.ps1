@@ -33,22 +33,35 @@ $increases
 $depths | Set-Clipboard
 
 # Combined + Partially Minimized
-[int[]]$d=gcb
+$d=gcb|%{+$_}
 $x=$y=0
 $l=$d[0]+$d[1]+$d[2]
 1..($d.Count)|%{
-    if($d[$_] -gt $d[$_-1]){
-        $x++
-    }
-    if($_ -ge 3){
-        if(($t=$d[$_]+$d[$_-1]+$d[$_-2]) -gt $l){
-            $y++
-        }
+    $x+=$d[$_]-gt$d[$_-1]
+    if($_-ge3){
+        $y+=($t=$d[$_]+$d[$_-1]+$d[$_-2])-gt$l
         $l=$t
     }
 }
 $x
 $y
 
-# Golfed - 161 chars
-[int[]]$d=gcb;$x=$y=0;$l=$d[0]+$d[1]+$d[2];1..($d.Count)|%{if($d[$_] -gt $d[$_-1]){$x++};if($_ -ge 3){if(($t=$d[$_]+$d[$_-1]+$d[$_-2]) -gt $l){$y++}$l=$t}};$x;$y
+# Golfed - 144 chars
+[int[]]$d=gcb;$x=$y=0;$l=$d[0]+$d[1]+$d[2];1..($d.Count)|%{$x+=$d[$_]-gt$d[$_-1];if($_-ge3){$y+=($t=$d[$_]+$d[$_-1]+$d[$_-2])-gt$l;$l=$t}};$x;$y
+
+
+# u/bis fun pipeline solution
+$x=$y=0  # number of positive deltas and windowed-deltas
+gcb | # get the puzzle input from the clipboard
+%{+$_}-ov L| # make the string into a number, and put the output so far into $L
+
+# make objects to better visualize the two sequences, using -PipelineVariable to look at
+# the prior input value ($p)
+select -first 50 @{n='N';e={$_}}, @{n='N3';e={if($L.Count -ge 3){$L[-1]+$L[-2]+$L[-3]}}} |
+select *, @{n='D';e={if($p){$_.N-$p.N}}}, @{N='D3';e={if($null-ne$p.N3){$_.N3-$p.N3}}} -pv p |
+
+# hackily calculate the count of the two types of deltas, using the fact that $true = 1, $false = 0
+%{$x+=$_.D-gt0; $y+=$_.D3-gt0}
+
+$x
+$y
