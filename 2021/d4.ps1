@@ -9,11 +9,13 @@ param(
 
 # https://adventofcode.com/2021/day/4
 
-Get-Content $InputFile -Raw | Set-Clipboard
+$data = Get-Content $InputFile -Raw
+Set-Clipboard $data
+
 
     # pre-calculate sets of winning indexes that represent
-    # the winning rows and columns
-    $winSets = @(
+    # the winning rows and columns in a flattened 5x5 board
+    $winIndexes = @(
         ,(0..4)
         ,(5..9)
         ,(10..14)
@@ -26,18 +28,21 @@ Get-Content $InputFile -Raw | Set-Clipboard
         ,(4,9,14,19,24)
     )
 
-    # boards are 5x5 but we're going to represent them as a flat array
-    $draws,$boards = (gcb) -split "`n`n"
+    # split the draws from the boards
+    $draws,$boards = (Get-Clipboard -Raw) -split "`n`n"
     [int[]]$draws = $draws -split ','
+
+    # convert each board to a flat array of ints
     $boards = $boards | %{
+        # split on whitespace chars and remove empties
         ,[int[]]($_ -split "[\s]" | ?{$_})
     }
 
-    # use the "win" set indexes to calculate the sets of winning draws
+    # use the "win" indexes to calculate the sets of winning draws
     # for each board
-    $boardWins = $boards | %{
-        $b=$_
-        $wins = $winSets | %{ ,$b[$_] }
+    $boardWins = $boards | ForEach-Object {
+        $board = $_
+        $wins = $winIndexes | ForEach-Object { ,$board[$_] }
         ,$wins
     }
 
@@ -54,8 +59,8 @@ if (-not $NoPart1) {
         $score = for ($j=0; $j -lt $boards.Count; $j++) {
 
             if ($boardWins[$j] | Where-Object {
-                # compare the numbers drawn to the set required for winning
-                # when 5 match, it's a win
+                # Compare the numbers drawn to the set required for winning.
+                # When 5 match, it's a win
                 (Compare-Object $_ $curDraws -ExcludeDifferent).Count -eq 5
             }) {
                 # calculate and return the score
@@ -65,10 +70,7 @@ if (-not $NoPart1) {
             }
         }
 
-        if ($score) {
-            $score
-            break
-        }
+        if ($score) { $score; break }
     }
 
 }
