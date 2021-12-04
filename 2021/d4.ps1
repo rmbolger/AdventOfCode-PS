@@ -26,9 +26,6 @@ Get-Content $InputFile -Raw | Set-Clipboard
         ,(4,9,14,19,24)
     )
 
-# runtime - 31s
-if (-not $NoPart1) {
-
     # boards are 5x5 but we're going to represent them as a flat array
     $draws,$boards = (gcb) -split "`n`n"
     [int[]]$draws = $draws -split ','
@@ -36,34 +33,34 @@ if (-not $NoPart1) {
         ,[int[]]($_ -split "[\s]" | ?{$_})
     }
 
-    $drawCount = 0
-    foreach ($draw in $draws) {
-        $drawCount++
+    # use the "win" set indexes to calculate the sets of winning draws
+    # for each board
+    $boardWins = $boards | %{
+        $b=$_
+        $wins = $winSets | %{ ,$b[$_] }
+        ,$wins
+    }
 
-        $score = foreach ($b in $boards) {  # loop through the boards
+# Part 1 - runtime ~1s
+if (-not $NoPart1) {
 
-            # mark each one by replacing the matching number with -1
-            0..24 | %{
-                if ($b[$_] -eq $draw) { $b[$_] = -1 }
-            }
-            #Write-Verbose "$draw : $($b -join ',')"
+    # start at the 5th draw which is the first possible winner
+    for ($i=4; $i -lt $draws.Count; $i++) {
 
-            # don't worry about winners until there's at least 5 draws
-            if ($drawCount -lt 5) { continue }
+        # get the set of numbers drawn so far
+        $curDraws = $draws[0..$i]
 
-            # check if it's a winner
-            $winner = foreach ($set in $winSets) {
-                if (($b[$set] -join '+' | iex) -eq -5) {
-                    $true
-                    break
-                }
-                # else { Write-Verbose "    $($_ -join ',') : $($b[$_] -join '+')" }
-            }
+        # check the boards for wins
+        $score = for ($j=0; $j -lt $boards.Count; $j++) {
 
-            # return the score if it's a winner
-            if ($winner) {
-                $boardScore = ($b | ?{$_ -gt 0}) -join '+' | iex
-                $boardScore * $draw
+            if ($boardWins[$j] | Where-Object {
+                # compare the numbers drawn to the set required for winning
+                # when 5 match, it's a win
+                (Compare-Object $_ $curDraws -ExcludeDifferent).Count -eq 5
+            }) {
+                # calculate and return the score
+                $boardScore = ($boards[$j] | ?{ $_ -notin $curDraws }) -join '+' | iex
+                $boardScore * $draws[$i]
                 break
             }
         }
@@ -72,59 +69,42 @@ if (-not $NoPart1) {
             $score
             break
         }
-
     }
+
 }
 
-# runtime - 65s
+# Part 2 - runtime ~6s
 if (-not $NoPart2) {
 
-    # boards are 5x5 but we're going to represent them as a flat array
-    $draws,$boards = (gcb) -split "`n`n"
-    [int[]]$draws = $draws -split ','
-    $boards = $boards | %{
-        ,[int[]]($_ -split "[\s]" | ?{$_})
-    }
+    # create a list of not-yet-won board IDs that we'll remove from
+    # as boards win
+    $idsLeft = 0..($boards.Count-1)
 
-    $drawCount = 0
-    foreach ($draw in $draws) {
-        $drawCount++
+    # start at the 5th draw which is the first possible winner
+    for ($i=4; $i -lt $draws.Count; $i++) {
 
-        # mark each board
-        (0..24).foreach({
-            $i = $_
-            $boards.foreach({
-                if ($_[$i] -eq $draw) { $_[$i] = -1 }
-            })
-        })
-        #$boards | %{ Write-Verbose "$draw : $($_ -join ',')" }
+        # get the set of numbers drawn so far
+        $curDraws = $draws[0..$i]
 
-        # don't worry about winners until there's at least 5 draws
-        if ($drawCount -lt 5) { continue }
-
-        # find non-winning board(s)
-        $nonWinners = $boards.where({
-            $b = $_
-            $winner = foreach ($set in $winSets) {
-                if (($b[$set] -join '+' | iex) -eq -5) {
-                    $true
-                    break
-                }
+        # find the non-winning boards
+        $nonWinners = @($idsLeft | Where-Object {
+            $winner = $boardWins[$_] | Where-Object {
+                (Compare-Object $_ $curDraws -ExcludeDifferent).Count -eq 5
             }
-            if (-not $winner) { return $true }
+            if (-not $winner) { $true }
         })
 
         if ($nonWinners) {
             # keep drawing
             #Write-Verbose "$($nonWinners.Count) board(s) remaining"
-            $boards = $nonWinners
+            $idsLeft = $nonWinners
             continue
         }
         else {
             # return the score
-            $boardScore = ($boards[0] | ?{$_ -gt 0}) -join '+' | iex
-            #Write-Verbose "score $boardScore - draw $draw"
-            $boardScore * $draw
+            $boardScore = ($boards[$idsLeft[0]] | ?{$_ -notin $curDraws}) -join '+' | iex
+            #Write-Verbose "last board ID $($idsLeft[0]) - score $boardScore - draw $($draws[$i])"
+            $boardScore * $draws[$i]
             break
         }
     }
