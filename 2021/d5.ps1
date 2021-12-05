@@ -67,39 +67,24 @@ Set-Clipboard $data
 
 
 
-# u/ka-splam implementation (faster)
-$board1 = [Collections.Generic.Dictionary[string, int]]::new() # board for part 1
-$board2 = [Collections.Generic.Dictionary[string, int]]::new() # board for part 2
-
-foreach ($line in (gcb)) {
-
-    [int]$x1, [int]$y1, [int]$x2, [int]$y2 = $line -split ' -> ' -split ','
-
-    if     ($x1 -eq $x2) { foreach ($y in $y1..$y2) { $board1["$x1, $y"] += 1; $board2["$x1, $y"] += 1 } } # vertical
-    elseif ($y1 -eq $y2) { foreach ($x in $x1..$x2) { $board1["$x, $y1"] += 1; $board2["$x, $y1"] += 1 } } # horizontal
-
-    else {                                                                                                 # diagonal
-        if ($x1 -gt $x2) { $x1, $y1, $x2, $y2 = $x2, $y2, $x1, $y1  }           #swap pairs so X is always increasing
-
-        $x,$y = $x1,$y1
-
-        if ($y1 -lt $y2) { # case y increasing, up-right
-            while ($x -le $x2) { # lines are always 45 degree, both should end at same time
-                $board2["$x, $y"] += 1
-                $x+=1
-                $y+=1
-            }
-        } else {           # case y decreasing, down-right
-            while ($x -le $x2) {
-                $board2["$x, $y"] += 1
-                $x+=1
-                $y-=1
-            }
-        }
-    }
-}
-
-write-host "Part 1"
-write-host ($board1.GetEnumerator().where{$_.value -gt 1} | measure |% count)
-write-host "Part 2"
-write-host ($board2.GetEnumerator().where{$_.value -gt 1} | measure |% count)
+# u/bis implementation using encoded int keys and dictionary
+# $1=[System.Collections.Generic.Dictionary[int,int]]::new(1000)
+# $2=[System.Collections.Generic.Dictionary[int,int]]::new(1000)
+# gcb|%{
+#   $x1,$y1,$x2,$y2=$_-split'\D+'-as[int[]]
+#   $x=$x1..$x2
+#   $y=$y1..$y2
+#   $c=$x.Count
+#   if($y1-eq$y2){
+#     $x|%{$1[$_*1000+$y1]++}
+#     $y*=$c
+#   }
+#   elseif($x1-eq$x2){
+#     $y|%{$1[$x1*1000+$_]++}
+#     $c=$y.Count
+#     $x*=$c
+#   }
+#   0..($c-1)|%{$2[$x[$_]*1000-$y[$_]]++}
+# }
+# ($1.Values-gt1).Count
+# ($2.Values-gt1).Count
