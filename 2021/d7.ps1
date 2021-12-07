@@ -12,7 +12,7 @@ param(
 $data = Get-Content $InputFile
 Set-Clipboard $data
 
-$pos = [int[]]((gcb) -split ',') | Sort-Object
+    $pos = [int[]]((gcb) -split ',') | Sort-Object
 
 # Part 1
 if (-not $NoPart1) {
@@ -35,20 +35,44 @@ if (-not $NoPart2) {
     $costs = @{}
     0..$pos[-1] | %{
         $total += $_
-        $costs[$_] = $total
+        $costs.$_ = $total
     }
 
-    # a bit of parallel processing to brute force all of the possibilities
-    $pos[0]..$pos[-1] | ForEach-Object -Parallel {
-        $p = $_
-        $fuel = $using:pos | %{
-            $delta = [Math]::Abs($_ - $p)
-            ($using:costs)[$delta]
+    # The "quick" way to do part 2 involves the mean/average of the available
+    # positions. But there seems to be some mathmatical variation among puzzle
+    # sets whether the average should be Floored or Rounded. To (hopefully)
+    # ensure any puzzle set works, we'll just calculate both and use whichever
+    # is better.
+
+    $roundMean = [int][Math]::Round(($pos | measure -Average).Average)
+    $floorMean = [int][Math]::Floor(($pos | measure -Average).Average)
+    Write-Verbose "mean (rounded) = $roundMean, mean (floor) = $floorMean"
+
+    $roundMean,$floorMean | %{
+        $mean = $_
+        $fuel = $pos | %{
+            $delta = [Math]::Abs($_ - $mean)
+            $costs.$delta
         } | measure -sum | % sum
         [pscustomobject]@{
-            pos = $p
+            pos = $mean
             fuel = $fuel
         }
-    } | sort fuel | select -first 1 | select -expand fuel
+    } | sort fuel | select -first 1
+
+    # old brute force parallel implementation
+
+    # # a bit of parallel processing to brute force all of the possibilities
+    # $pos[0]..$pos[-1] | ForEach-Object -Parallel {
+    #     $p = $_
+    #     $fuel = $using:pos | %{
+    #         $delta = [Math]::Abs($_ - $p)
+    #         ($using:costs)[$delta]
+    #     } | measure -sum | % sum
+    #     [pscustomobject]@{
+    #         pos = $p
+    #         fuel = $fuel
+    #     }
+    # } | sort fuel | select -first 1 -expand fuel
 
 }
