@@ -2,10 +2,10 @@
 
 [CmdletBinding()]
 param(
-    $InputFile = '.\d5.txt'
+    $InputFile = '.\d6.txt'
 )
 
-# https://adventofcode.com/2021/day/5
+# https://adventofcode.com/2021/day/6
 
 $data = Get-Content $InputFile
 Set-Clipboard $data
