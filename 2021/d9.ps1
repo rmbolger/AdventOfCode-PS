@@ -20,44 +20,48 @@ Set-Clipboard $data
     $top = ,(@(9)*($mapW+2))
     $caves = $top + $caves + $top
 
-    # while we find the low points, we're going to save the coordinates of
-    # every potential basin point and its basin neighbors in a dictionary.
-    $nbrs = [Collections.Generic.Dictionary[string,string[]]]::new($mapW*$mapH*2)
+    # create a few dictionaries to hold parsed info we'll need later
+    $xyVals = [Collections.Generic.Dictionary[string,int]]::new($mapW*$mapH*2)
+    $xyNbrs = [Collections.Generic.Dictionary[string,string[]]]::new($mapW*$mapH*2)
+    $xyNbrVals = [Collections.Generic.Dictionary[string,int[]]]::new($mapW*$mapH*2)
 
-    # find the low points for part 2 while calculating the risk for part 1
+    # Save the low points for part 2 while sum'ing their risks for part 1
+    # Loop through the non-border x,y's
     $lowPoints = for ($y=1; $y -le $mapH; $y++) {
         for ($x=1; $x -le $mapW; $x++) {
 
-            $pt = $caves[$y][$x]
+            $val = $caves[$y][$x]
 
-            # can't be a low point at 9 and don't care about neighbors
-            if ($pt -eq 9) { continue }
+            # skip 9's because they can't be a low point we don't care about neighbors
+            if ($val -eq 9) { continue }
 
             $key = "$x,$y"
-            $up=$rt=$dn=$lt=9
+            $xyVals.$key = $val
 
-            # check each neighbor
+            #$up=$rt=$dn=$lt=9
+
+            # save the non-9 neighbor coords
             if (($up = $caves[$y-1][$x]) -ne 9) {
-                $nbrs.$key += @("$x,$($y-1)")
+                $xyNbrs.$key += @("$x,$($y-1)")
             }
             if (($rt = $caves[$y][$x+1]) -ne 9) {
-                $nbrs.$key += @("$($x+1),$y")
+                $xyNbrs.$key += @("$($x+1),$y")
             }
             if (($dn = $caves[$y+1][$x]) -ne 9) {
-                $nbrs.$key += @("$x,$($y+1)")
+                $xyNbrs.$key += @("$x,$($y+1)")
             }
             if (($lt = $caves[$y][$x-1]) -ne 9) {
-                $nbrs.$key += @("$($x-1),$y")
+                $xyNbrs.$key += @("$($x-1),$y")
             }
 
-            if ($up -le $pt -or
-                $rt -le $pt -or
-                $dn -le $pt -or
-                $lt -le $pt) { continue }
+            if ($up -le $val -or
+                $rt -le $val -or
+                $dn -le $val -or
+                $lt -le $val) { continue }
 
             # no neighbors disqualify, so this is a low point
-            #Write-Verbose "$x,$y = $pt (risk $([int]$pt+1))"
-            $risk += $pt+1
+            #Write-Verbose "$x,$y = $val (risk $([int]$val+1))"
+            $risk += $val+1
             $key
         }
     }
@@ -81,7 +85,7 @@ if (-not $NoPart2) {
         $Exclude += $Key
 
         # now check the neighbors if there are any
-        $nbrs[$Key] | %{
+        $xyNbrs[$Key] | %{
             if ($_ -notin $Exclude) {
                 #Write-Verbose "Recurse $_ excluding $($Exclude -join '|')"
                 $newNeighbors = Get-BasinNeighbors $_ $Exclude -Verbose | Select-Object -Unique
