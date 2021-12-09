@@ -23,7 +23,7 @@ Set-Clipboard $data
     # create a few dictionaries to hold parsed info we'll need later
     $xyVals = [Collections.Generic.Dictionary[string,int]]::new($mapW*$mapH*2)
     $xyNbrs = [Collections.Generic.Dictionary[string,string[]]]::new($mapW*$mapH*2)
-    $xyNbrVals = [Collections.Generic.Dictionary[string,int[]]]::new($mapW*$mapH*2)
+    #$xyNbrVals = [Collections.Generic.Dictionary[string,int[]]]::new($mapW*$mapH*2)
 
     # Save the low points for part 2 while sum'ing their risks for part 1
     # Loop through the non-border x,y's
@@ -35,39 +35,47 @@ Set-Clipboard $data
             # skip 9's because they can't be a low point we don't care about neighbors
             if ($val -eq 9) { continue }
 
-            $key = "$x,$y"
-            $xyVals.$key = $val
+            $xy = "$x,$y"
+            #Write-Verbose "caching $xy as $val **"
+            $xyVals[$xy] = $val
 
-            #$up=$rt=$dn=$lt=9
-
-            # save the non-9 neighbor coords
-            if (($up = $caves[$y-1][$x]) -ne 9) {
-                $xyNbrs.$key += @("$x,$($y-1)")
-            }
-            if (($rt = $caves[$y][$x+1]) -ne 9) {
-                $xyNbrs.$key += @("$($x+1),$y")
-            }
-            if (($dn = $caves[$y+1][$x]) -ne 9) {
-                $xyNbrs.$key += @("$x,$($y+1)")
-            }
-            if (($lt = $caves[$y][$x-1]) -ne 9) {
-                $xyNbrs.$key += @("$($x-1),$y")
+            # build the set of neighbor coords/keys
+            $nbrs = & {
+                [pscustomobject]@{x=$x; y=$y-1; xy="$x,$($y-1)"}    # up
+                [pscustomobject]@{x=$x; y=$y+1; xy="$x,$($y+1)"}    # down
+                [pscustomobject]@{x=$x+1; y=$y; xy="$($x+1),$y"}    # right
+                [pscustomobject]@{x=$x-1; y=$y; xy="$($x-1),$y"}    # right
             }
 
-            if ($up -le $val -or
-                $rt -le $val -or
-                $dn -le $val -or
-                $lt -le $val) { continue }
+            # cache neighbor coord vals and basin neighbor coords
+            $basinNeighbors = $nbrs.foreach{
+                if (-not ($nVal = $xyVals[$_.xy])) {
+                    #Write-Verbose "caching $($_.xy) as $($caves[$_.y][$_.x])"
+                    $xyVals[$_.xy] = $nVal = $caves[$_.y][$_.x]
+                }
+                if ($nVal -ne 9) {
+                    # return the coord as a basin neighbor
+                    $_.xy
+                }
+            }
+            #Write-Verbose "$xy has basin neighbors $($basinNeighbors -join '|')"
+            $xyNbrs[$xy] = $basinNeighbors
+
+            # check if this is a low point
+            $leNbrs = foreach ($n in $nbrs) {
+                if ($xyVals[$n.xy] -le $val) { $true; break }
+            }
+            if ($leNbrs) { continue }
 
             # no neighbors disqualify, so this is a low point
-            #Write-Verbose "$x,$y = $val (risk $([int]$val+1))"
+            #Write-Verbose "$xy = $val (risk $([int]$val+1))"
             $risk += $val+1
-            $key
+            $xy
         }
     }
 
+    #Write-Verbose "$($lowPoints.Count) low points"
     $risk
-    Write-Verbose "$($lowPoints.Count) low points"
 
 # Part 2
 if (-not $NoPart2) {
@@ -76,7 +84,7 @@ if (-not $NoPart2) {
         [CmdletBinding()]
         param(
             [string]$Key,
-            [string[]]$Exclude
+            [Collections.Generic.List[string]]$Exclude
         )
 
         # first return and exclude yourself
@@ -95,6 +103,8 @@ if (-not $NoPart2) {
             #else { Write-Verbose "Skip    $_" }
         }
     }
+
+    $exclude = [Collections.Generic.List[string]]::new($mapW*$mapH*2)
 
     # Every non-9 can only be part of 1 basin. So start
     # with the low points and follow unique non-9 neighbors
