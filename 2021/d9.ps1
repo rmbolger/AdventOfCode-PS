@@ -13,7 +13,7 @@ Set-Clipboard $data
 
 # Part 1
 
-    # create a 2x2 array with a border of 9's for the input
+    # create a 2D array with a border of 9's for the input
     [int[][]]$caves = gcb | %{ ,( [char[]]"9$($_)9" | %{ $_-48 } ) }
     $mapW = $caves[0].Count - 2
     $mapH = $caves.Count
@@ -23,7 +23,6 @@ Set-Clipboard $data
     # create a few dictionaries to hold parsed info we'll need later
     $xyVals = [Collections.Generic.Dictionary[string,int]]::new($mapW*$mapH*2)
     $xyNbrs = [Collections.Generic.Dictionary[string,string[]]]::new($mapW*$mapH*2)
-    #$xyNbrVals = [Collections.Generic.Dictionary[string,int[]]]::new($mapW*$mapH*2)
 
     # Save the low points for part 2 while sum'ing their risks for part 1
     # Loop through the non-border x,y's
@@ -32,7 +31,7 @@ Set-Clipboard $data
 
             $val = $caves[$y][$x]
 
-            # skip 9's because they can't be a low point we don't care about neighbors
+            # skip 9's because they can't be a low point and we don't care about neighbors
             if ($val -eq 9) { continue }
 
             $xy = "$x,$y"
@@ -44,7 +43,7 @@ Set-Clipboard $data
                 [pscustomobject]@{x=$x; y=$y-1; xy="$x,$($y-1)"}    # up
                 [pscustomobject]@{x=$x; y=$y+1; xy="$x,$($y+1)"}    # down
                 [pscustomobject]@{x=$x+1; y=$y; xy="$($x+1),$y"}    # right
-                [pscustomobject]@{x=$x-1; y=$y; xy="$($x-1),$y"}    # right
+                [pscustomobject]@{x=$x-1; y=$y; xy="$($x-1),$y"}    # left
             }
 
             # cache neighbor coord vals and basin neighbor coords
@@ -61,11 +60,11 @@ Set-Clipboard $data
             #Write-Verbose "$xy has basin neighbors $($basinNeighbors -join '|')"
             $xyNbrs[$xy] = $basinNeighbors
 
-            # check if this is a low point
-            $leNbrs = foreach ($n in $nbrs) {
-                if ($xyVals[$n.xy] -le $val) { $true; break }
+            # check if this is a low point against basin neighbors
+            $notLowest = foreach ($n in $basinNeighbors) {
+                if ($xyVals[$n] -le $val) { $true; break }
             }
-            if ($leNbrs) { continue }
+            if ($notLowest) { continue }
 
             # no neighbors disqualify, so this is a low point
             #Write-Verbose "$xy = $val (risk $([int]$val+1))"
@@ -73,8 +72,7 @@ Set-Clipboard $data
             $xy
         }
     }
-
-    #Write-Verbose "$($lowPoints.Count) low points"
+    # Part 1 result
     $risk
 
 # Part 2
@@ -100,7 +98,6 @@ if (-not $NoPart2) {
                 $Exclude += $newNeighbors
                 $newNeighbors
             }
-            #else { Write-Verbose "Skip    $_" }
         }
     }
 
@@ -114,6 +111,8 @@ if (-not $NoPart2) {
         #Write-Verbose ($n -join '|')
     }
     $s3 = $basinSizes | Sort-Object -Descending | Select-Object -First 3
+
+    # Part 2 result
     $s3[0]*$s3[1]*$s3[2]
 
 }
