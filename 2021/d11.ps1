@@ -3,7 +3,8 @@
 [CmdletBinding()]
 param(
     $InputFile = '.\d11.txt',
-    [switch]$ShowViz
+    [switch]$ShowViz,
+    [int]$VizDelayMs = 50
 )
 
 # https://adventofcode.com/2021/day/11
@@ -97,12 +98,14 @@ Set-Clipboard $data
                 $chars -join ''
             }
             $PSStyle.Reset
-            Start-Sleep -Milliseconds $DelayMs
+            if ($DelayMs -gt 0) {
+                Start-Sleep -Milliseconds $DelayMs
+            }
         }
     }
 
     $flashed = [Collections.Generic.List[int]]::new(200)
-    Out-OctoGrid $octEnergy
+    Out-OctoGrid $octEnergy -DelayMs $VizDelayMs
 
     while ($true) {
         $i += 1
@@ -112,7 +115,7 @@ Set-Clipboard $data
         foreach ($key in $octEnergy.Keys) {
             $octEnergy.$key += 1
         }
-        $octEnergy | Out-OctoGrid
+        $octEnergy | Out-OctoGrid -DelayMs $VizDelayMs
 
         $flashed.Clear()
         while ($flashing = ($octEnergy.GetEnumerator() | ?{ $_.Value -gt 9 -and $_.Key -notin $flashed})) {
@@ -125,7 +128,7 @@ Set-Clipboard $data
                     $octEnergy.$nbr += 1
                 }
             }
-            $octEnergy | Out-OctoGrid
+            $octEnergy | Out-OctoGrid -DelayMs $VizDelayMs
         }
 
         # count and zero out the flashed
@@ -133,7 +136,7 @@ Set-Clipboard $data
         foreach ($xy in $flashed) {
             $octEnergy[$xy] = 0
         }
-        $octEnergy | Out-OctoGrid
+        $octEnergy | Out-OctoGrid -DelayMs $VizDelayMs
 
         # check for Part 2 completion
         if ($flashed.Count -eq 100) {
