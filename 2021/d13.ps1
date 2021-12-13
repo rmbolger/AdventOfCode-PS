@@ -33,18 +33,17 @@ Set-Clipboard $data
             }
         }
 
+        # get rid of dupes
+        $dots = $dots | Sort-Object x,y -Unique
+
         # Part 1 - Count dots in the first fold
         if ($foldCount -eq 1) {
-            $count = ($dots | Sort-Object x,y -Unique).Count
-            Write-Host "Part 1: $count"
+            Write-Host "Part 1: $($dots.Count)"
         }
     }
 
-    # get rid of dupes
-    $dots = $dots | Sort-Object x,y -Unique
-
     # find the size of our final paper
-    $dots | %{
+    $dots | ForEach-Object {
         $maxX = [Math]::Max($_.x,$maxX)
         $maxY = [Math]::Max($_.y,$maxY)
     }
@@ -52,7 +51,7 @@ Set-Clipboard $data
     Write-Host "Part 2`n"
     for ($gy=0; $gy -le $maxY; $gy++) {
         $chars = for ($gx=0; $gx -le $maxX; $gx++) {
-            if ($dots | ?{ $_.x -eq $gx -and $_.y -eq $gy }) {
+            if ($dots | Where-Object { $_.x -eq $gx -and $_.y -eq $gy }) {
                 '█'
             } else {
                 ' '
