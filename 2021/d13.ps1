@@ -35,13 +35,13 @@ Set-Clipboard $data
 
         # Part 1 - Count dots in the first fold
         if ($foldCount -eq 1) {
-            $count = ($dots | Sort-Object X,Y -Unique).Count
+            $count = ($dots | Sort-Object x,y -Unique).Count
             Write-Host "Part 1: $count"
         }
     }
 
     # get rid of dupes
-    $dots = $dots | Sort-Object X,Y -Unique
+    $dots = $dots | Sort-Object x,y -Unique
 
     # find the size of our final paper
     $dots | %{
