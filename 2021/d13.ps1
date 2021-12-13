@@ -38,7 +38,7 @@ Set-Clipboard $data
 
         # Part 1 - Count dots in the first fold
         if ($foldCount -eq 1) {
-            Write-Host "Part 1: $($dots.Count)"
+            Write-Host "Part 1: $(($dots = $dots | Sort-Object x,y -Unique).Count)"
         }
     }
 
@@ -49,14 +49,11 @@ Set-Clipboard $data
     }
 
     Write-Host "Part 2`n"
-    for ($gy=0; $gy -le $maxY; $gy++) {
-        $chars = for ($gx=0; $gx -le $maxX; $gx++) {
-            if ($dots | Where-Object { $_.x -eq $gx -and $_.y -eq $gy }) {
-                '█'
-            } else {
-                ' '
-            }
-        }
-        Write-Host ($chars -join '')
+    $grid = 0..$maxY | %{ ,([string[]]((' '*($maxX+1)).ToCharArray())) }
+    foreach ($dot in $dots) {
+        $grid[$dot.y][$dot.x] = '█'
+    }
+    foreach ($line in $grid) {
+        Write-Host ($line -join '')
     }
     Write-Host
