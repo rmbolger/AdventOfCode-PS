@@ -14,38 +14,34 @@ Set-Clipboard $data
 
     $dots = $dotsRaw.Trim() -split "`n" | ForEach-Object {
         [int]$x,[int]$y = $_ -split ','
-        [pscustomobject]@{x=$x;y=$y;xy="$x,$y"}
-    }
-    $folds = $foldsRaw.Trim() -split "`n" | %{
-        $axis,$val = $_ -split '='
         [pscustomobject]@{
-            axis = [string]$axis[-1]
-            val = [int]$val
+            x=$x
+            y=$y
         }
     }
 
-    0..($folds.Count-1) | ForEach-Object {
-        $axis = $folds[$_].axis
-        $val = $folds[$_].val
+    $foldsRaw.Trim() -split "`n" | ForEach-Object {
+        $foldCount += 1
+        $axis,[int]$val = $_ -split '='
+        $axis = [string]$axis[-1]
 
         for ($i=0; $i -lt $dots.Count; $i++) {
             $dot = $dots[$i]
             if ($dot.$axis -gt $val) {
                 #Write-Verbose "$($axis) = 2*$val - $($dots[$i].$axis) = $(2*$val-$dots[$i].$axis)"
                 $dot.$axis = 2*$val - $dot.$axis
-                $dot.xy = "$($dot.x),$($dot.y)"
             }
         }
 
         # Part 1 - Count dots in the first fold
-        if ($_ -eq 0) {
-            $count = ($dots | Sort-Object -Unique {$_.xy}).Count
+        if ($foldCount -eq 1) {
+            $count = ($dots | Sort-Object X,Y -Unique).Count
             Write-Host "Part 1: $count"
         }
     }
 
     # get rid of dupes
-    $dots = $dots | Sort-Object -Unique {$_.xy}
+    $dots = $dots | Sort-Object X,Y -Unique
 
     # find the size of our final paper
     $dots | %{
@@ -57,7 +53,7 @@ Set-Clipboard $data
     for ($gy=0; $gy -le $maxY; $gy++) {
         $chars = for ($gx=0; $gx -le $maxX; $gx++) {
             if ($dots | ?{ $_.x -eq $gx -and $_.y -eq $gy }) {
-                '#'
+                '█'
             } else {
                 ' '
             }
