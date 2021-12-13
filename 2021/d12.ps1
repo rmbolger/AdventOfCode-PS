@@ -11,20 +11,11 @@ param(
 $data = Get-Content $InputFile
 Set-Clipboard $data
 
-# maintain the set of paths as a List of Stacks
-$paths = [Collections.Generic.List[[Collections.Generic.Stack[string]]]]::new()
-
 # create a Dictionary that maps forward/reverse connections
 $conn = [Collections.Generic.Dictionary[string,[Collections.Generic.List[string]]]]::new()
 
 # regex for upper-case chars (make sure to use -cmatch)
-$reUpper = [regex]'[A-Z]+'
-
-function CloneStack {
-    $a = $args[0].ToArray()
-    [array]::Reverse($a)
-    ,[Collections.Generic.Stack[string]]::new($a)
-}
+$reLower = [regex]'[a-z]+'
 
 # load the input into the connections Dict
 Get-ClipBoard | %{
@@ -39,71 +30,42 @@ Get-ClipBoard | %{
     if ($a -ne 'start') { $conn[$b].Add($a) }
 }
 
-$conn['start'] | %{
-    $p = [Collections.Generic.Stack[string]]::new()
-    $p.Push('start')
-    $p.Push($_)
-    $paths.Add($p)
-    Write-Verbose "    $($p -join '-') (initial)"
-}
+$script:pathCount = 0
 
-while ($notDone = $paths | Where-Object { $_.Peek() -ne 'end' }) {
+function Get-PathCount {
+    [CmdletBinding()]
+    param(
+        [Parameter(Position=0)]
+        [string]$Room = 'start',
+        [Parameter(Position=1)]
+        [string[]]$Seen = @(),
+        [switch]$Part2
+    )
 
-    foreach ($p in $notDone) {
-        $last = $p.Peek()
+    if ($Room -eq 'end') {
+        $script:pathCount += 1
+        return
+    }
 
-        # what adjacent rooms we're allowed to go through next depends on
-        # which part we're on.
-        if (-not $Part2) {
-            # any upper-case rooms or lower-case rooms we haven't yet visited
-            $adj = @($conn[$last] | Where-Object {
-                $_ -cmatch $reUpper -or -not $p.Contains($_)
-            })
-        } else {
-            # any upper-case rooms
-            # one lower-case room can appear twice
-            # the rest can only appear once
-
-            # check if we're still allowed to duplicate a lower-case room
-            $noDupeLower = ($null -ne ($p | Where-Object {
-                $_ -cnotmatch $reUpper
-            } | Group-Object | Where-Object {
-                $_.Count -ge 2
-            }))
-
-            $adj = @($conn[$last] | Where-Object {
-                $room = $_
-                ($room -cmatch $reUpper -or -not $noDupeLower -or
-                    ($noDupeLower -and -not $p.Contains($_))
-                )
-            })
+    if ($Room -in $Seen) {
+        if ($Room -eq 'start') {
+            return
         }
-
-        #Write-Verbose "last: $last adj: $($adj -join ',') from $($conn[$last] -join ',')"
-        if ($adj.Count -eq 0) {
-            # path can't continue, so fake end it
-            $p.Push('END')
-            #Write-Verbose "    $($p -join '-') (FAKE)"
-        }
-        else {
-            if ($adj.Count -gt 1) {
-                # clone the path for each additional room beyond the first
-                for ($i=1; $i -lt $adj.Count; $i++) {
-                    $pNew = CloneStack $p
-                    $pNew.Push($adj[$i])
-                    $paths.Add($pNew)
-                    #Write-Verbose "    $($pNew -join '-') (clone)"
-                }
+        if ($Room -cmatch $reLower) {
+            if (-not $Part2) {
+                return
             }
-            # add the first room to the original path
-            $p.Push($adj[0])
-            #Write-Verbose "    $($p -join '-')"
+            else { $Part2 = $false }
         }
+    }
+
+    # add this room to the Seen list
+    $Seen += $Room
+
+    foreach ($nbr in $conn[$Room]) {
+        Get-PathCount $nbr $Seen -Part2:$Part2
     }
 }
 
-$count = ($paths | ?{ $_.Peek() -cne 'END' } | %{
-    $_ -join '-'
-}).Count
-
-Write-Host $count
+Get-PathCount -Part2:$Part2
+Write-Host $script:pathCount
