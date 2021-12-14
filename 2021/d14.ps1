@@ -41,7 +41,9 @@ Set-Clipboard $data
     1..40 | ForEach-Object {
 
         # clone the current pair counts and reset the hashtable
-        $oldPairs = $pairCounts.GetEnumerator() | %{ [pscustomobject]@{key=$_.Key;count=$_.Value} }
+        $oldPairs = $pairCounts.GetEnumerator() | %{
+            [pscustomobject]@{ key=$_.Key; count=$_.Value }
+        }
         $pairCounts = @{}
 
         $oldPairs | ForEach-Object {
