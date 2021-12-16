@@ -51,7 +51,9 @@ $expandLimit = ($Part2) ? 25 : 1
 # and a value that contains risk, "distance" from
 # 0,0 (total risk), and neighbors. Distance starts
 # as "infinity" for everything but 0,0
-$map = @{}
+$map = [Collections.Generic.Dictionary[string,hashtable]]::new()
+$map.EnsureCapacity(($maxX+1)*($maxY+1))
+
 for ($y=0; $y -lt $lines.Count; $y++) {
     for ($x=0; $x -lt $lines[0].Length; $x++) {
         for ($e=0; $e -lt $expandLimit; $e++) {
@@ -65,9 +67,9 @@ for ($y=0; $y -lt $lines.Count; $y++) {
             $map[$key] = @{
                 key = $key
                 risk = $eRisk
-                nbrs = $nbrDeltas | %{
-                    $nx = $ex + $_[0]
-                    $ny = $ey + $_[1]
+                nbrs = foreach ($d in $nbrDeltas) {
+                    $nx = $ex + $d[0]
+                    $ny = $ey + $d[1]
                     if (-not ($nx -lt 0 -or $ny -lt 0 -or
                         $nx -gt $maxX -or $ny -gt $maxY))
                     {
