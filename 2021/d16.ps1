@@ -130,7 +130,5 @@ Set-Clipboard $data
         $expression = ConvertFrom-Packets $bitStr
 
         Write-Host "Part 1: $($script:verSum)"
-        Write-Host $expression
-        $final = $expression | iex
-        Write-Host "Part 2: $final"
+        Write-Host "Part 2: $expression"
     }
