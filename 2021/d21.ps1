@@ -56,6 +56,17 @@ Set-Clipboard $data
     # 10 * 10 * 21 * 21 = 44100 * 2(capacity buffer) = 88200
     $gameStates = [Collections.Generic.Dictionary[string,long[]]]::new(88200)
 
+    # roll variations
+    $rollStates = @(
+        ,@(3,1) # 111
+        ,@(4,3) # 112,121,211
+        ,@(5,6) # 122,212,221,311,131,113
+        ,@(6,7) # 123,132,213,231,312,321,222
+        ,@(7,6) # 322,232,223,331,313,133
+        ,@(8,3) # 332,323,233
+        ,@(9,1) # 333
+    )
+
     function Invoke-DiracDice {
         [CmdletBinding()]
         param(
@@ -77,24 +88,21 @@ Set-Clipboard $data
 
         [long[]]$wins = 0,0
 
-        # take all variations of a turn
-        for ($r1=1; $r1 -le 3; $r1++) {
-            for ($r2=1; $r2 -le 3; $r2++) {
-                for ($r3=1; $r3 -le 3; $r3++) {
+        foreach ($roll in $rollStates) {
+            # update position and score
+            $pAPosNew = ($pAPos + $roll[0]) % 10
+            $pAScoreNew = $pAScore + $pAPosNew + 1
 
-                    # update position and score
-                    $pAPosNew = ($pAPos + $r1 + $r2 + $r3) % 10
-                    $pAScoreNew = $pAScore + $pAPosNew + 1
+            # recurse but flip player A/B to take turns
+            $pAWins,$pBWins = Invoke-DiracDice $pBPos $pAPosNew $pBScore $pAScoreNew
 
-                    # recurse but flip player A/B to take turns
-                    $pAWins,$pBWins = Invoke-DiracDice $pBPos $pAPosNew $pBScore $pAScoreNew
-
-                    # update the win counts (reversed because it was
-                    # from the previous turn where they were flipped)
-                    $wins[0] += $pBWins
-                    $wins[1] += $pAWins
-                }
-            }
+            # Update the win counts from the unrolled recursive
+            # recursive turns (reversed because it was from the
+            # previous turn where players were swapped)
+            # Multiply the wins by the number of roll states for
+            # this roll
+            $wins[0] += $pBWins * $roll[1]
+            $wins[1] += $pAWins * $roll[1]
         }
 
         # cache this game state
