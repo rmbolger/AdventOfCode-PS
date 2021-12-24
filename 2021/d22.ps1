@@ -48,39 +48,39 @@ class Cuboid {
         return $false
     }
 
-    [Cuboid]Merge([Cuboid]$c) {
-        if ($this.x0 -eq $c.x0 -and $this.x1 -eq $c.x1 -and
-            $this.y0 -eq $c.y0 -and $this.y1 -eq $c.y1)
-        {
-            if ($c.z1 -eq ($this.z0-1)) {
-                return [Cuboid]::new($c.x0,$c.x1,$c.y0,$c.y1,$c.z0,$this.z1)
-            } elseif ($c.z0 -eq ($this.z1+1)) {
-                return [Cuboid]::new($c.x0,$c.x1,$c.y0,$c.y1,$this.z0,$c.z1)
-            }
-            return $null
-        }
-        elseif ($this.x0 -eq $c.x0 -and $this.x1 -eq $c.x1 -and
-                $this.z0 -eq $c.z0 -and $this.z1 -eq $c.z1)
-        {
-            if ($c.y1 -eq ($this.y0-1)) {
-                return [Cuboid]::new($c.x0,$c.x1,$c.y0,$this.y1,$c.z0,$c.z1)
-            } elseif ($c.y0 -eq ($this.y1+1)) {
-                return [Cuboid]::new($c.x0,$c.x1,$this.y0,$c.y1,$c.z0,$c.z1)
-            }
-            return $null
-        }
-        elseif ($this.y0 -eq $c.y0 -and $this.y1 -eq $c.y1 -and
-                $this.z0 -eq $c.z0 -and $this.z1 -eq $c.z1)
-        {
-            if ($c.x1 -eq ($this.x0-1)) {
-                return [Cuboid]::new($c.x0,$this.x1,$c.y0,$c.y1,$c.z0,$c.z1)
-            } elseif ($c.x0 -eq ($this.x1+1)) {
-                return [Cuboid]::new($this.x0,$c.x1,$c.y0,$c.y1,$c.z0,$c.z1)
-            }
-            return $null
-        }
-        return $null
-    }
+    # [Cuboid]Merge([Cuboid]$c) {
+    #     if ($this.x0 -eq $c.x0 -and $this.x1 -eq $c.x1 -and
+    #         $this.y0 -eq $c.y0 -and $this.y1 -eq $c.y1)
+    #     {
+    #         if ($c.z1 -eq ($this.z0-1)) {
+    #             return [Cuboid]::new($c.x0,$c.x1,$c.y0,$c.y1,$c.z0,$this.z1)
+    #         } elseif ($c.z0 -eq ($this.z1+1)) {
+    #             return [Cuboid]::new($c.x0,$c.x1,$c.y0,$c.y1,$this.z0,$c.z1)
+    #         }
+    #         return $null
+    #     }
+    #     elseif ($this.x0 -eq $c.x0 -and $this.x1 -eq $c.x1 -and
+    #             $this.z0 -eq $c.z0 -and $this.z1 -eq $c.z1)
+    #     {
+    #         if ($c.y1 -eq ($this.y0-1)) {
+    #             return [Cuboid]::new($c.x0,$c.x1,$c.y0,$this.y1,$c.z0,$c.z1)
+    #         } elseif ($c.y0 -eq ($this.y1+1)) {
+    #             return [Cuboid]::new($c.x0,$c.x1,$this.y0,$c.y1,$c.z0,$c.z1)
+    #         }
+    #         return $null
+    #     }
+    #     elseif ($this.y0 -eq $c.y0 -and $this.y1 -eq $c.y1 -and
+    #             $this.z0 -eq $c.z0 -and $this.z1 -eq $c.z1)
+    #     {
+    #         if ($c.x1 -eq ($this.x0-1)) {
+    #             return [Cuboid]::new($c.x0,$this.x1,$c.y0,$c.y1,$c.z0,$c.z1)
+    #         } elseif ($c.x0 -eq ($this.x1+1)) {
+    #             return [Cuboid]::new($this.x0,$c.x1,$c.y0,$c.y1,$c.z0,$c.z1)
+    #         }
+    #         return $null
+    #     }
+    #     return $null
+    # }
 
     # Returns an array of cuboids that represent the volume of
     # the specified cuboid after removing the overlapping portion
