@@ -168,7 +168,6 @@ class Cuboid {
 $cubes = [Collections.Generic.List[Cuboid]]::new()
 
 foreach ($line in (Get-Clipboard | ?{$_})) {
-    $lineCount += 1
 
     if ($line.Length -gt 36 -and -not $p1Count) {
         # save the part 1 total
@@ -218,13 +217,6 @@ foreach ($line in (Get-Clipboard | ?{$_})) {
             #Write-Verbose "    adding $($cNew.Count) new cubes"
             $cubes.AddRange($cNew)
         }
-        # remove the cube indexes set to null
-        for ($i=($cubeCount-1); $i -ge 0; $i--) {
-            if ($null -eq $cubes[$i]) {
-                #Write-Verbose "    removing cube $i"
-                $cubes.RemoveAt($i)
-            }
-        }
     }
     else {
         # split the existing cubes against the 'off' cube
@@ -252,12 +244,13 @@ foreach ($line in (Get-Clipboard | ?{$_})) {
                 }
             }
         }
-        # remove the cube indexes set to null
-        for ($i=($cubeCount-1); $i -ge 0; $i--) {
-            if ($null -eq $cubes[$i]) {
-                #Write-Verbose "    removing cube $i"
-                $cubes.RemoveAt($i)
-            }
+    }
+
+    # remove the cube indexes set to null
+    for ($i=($cubeCount-1); $i -ge 0; $i--) {
+        if ($null -eq $cubes[$i]) {
+            #Write-Verbose "    removing cube $i"
+            $cubes.RemoveAt($i)
         }
     }
 
