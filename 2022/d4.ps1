@@ -14,7 +14,7 @@ param(
     Get-Content $InputFile | ForEach-Object {
 
         # parse the line into the individual values
-        $w,$x,$y,$z = [int[]]$_.Split([char[]]('-',','))
+        $w,$x,$y,$z = $_.Split([char[]]('-',','))
 
         # convert them into HashSets
         $hs1 = [Collections.Generic.HashSet[int]]::new([int[]]($w..$x))
