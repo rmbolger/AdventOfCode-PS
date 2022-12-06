@@ -5,9 +5,7 @@ param(
     $InputFile = '.\d5.txt'
 )
 
-# https://adventofcode.com/2022/day/4
-
-    # Shared Prep
+# https://adventofcode.com/2022/day/5
 
     $stacksRaw,$movesRaw = (Get-Content $InputFile -Raw) -split "`n`n"
     $stackLines = $stacksRaw -split "`n"
@@ -15,6 +13,8 @@ param(
 
     # calculate the char positions for each stack from line length
     $posNums = 0..([Math]::Floor($stackLines[0].Length/4)) | %{ $_*4+1 }
+    # make an array of stack numbers just because we're going to reference
+    # it a bunch
     $stackNums = 1..$posNums.Count
 
     # create a hashtable of stacks where the key is the stack number
