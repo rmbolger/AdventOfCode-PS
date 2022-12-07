@@ -15,7 +15,7 @@ param(
     }
 
     # parse the file structure into a hashtable where each absolute
-    # folder path is a key its value is a list of file details
+    # folder path is a key and its value is the total size of its children
     $fs = @{}
     switch -Regex (Get-Content $InputFile) {
 
