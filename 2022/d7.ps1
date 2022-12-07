@@ -20,15 +20,15 @@ param(
         }
     }
 
+    # helper that returns the parent path of a given folder
     function UpDir {
         param([string]$dir)
         $dir = $dir.Substring(0,$dir.LastIndexOf('/'))
         return ($dir -eq '') ? '/' : $dir
     }
 
-    # parse the file structure into a hashtable where each
-    # absolute folder path is a key and value is a list
-    # of file details
+    # parse the file structure into a hashtable where each absolute
+    # folder path is a key its value is a list of file details
     $fs = @{}
     switch -Regex (Get-Content $InputFile) {
 
