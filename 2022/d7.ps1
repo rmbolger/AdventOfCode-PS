@@ -69,7 +69,9 @@ param(
 
     # calculate the total size of each folder
     $folderSizes = foreach ($dir in $fs.Keys) {
-        $fs[$dir] | Measure-Object -Sum size | Select-Object @{L='dir';E={$dir}},@{L='size';E={$_.Sum}}
+        $fs[$dir]
+        | Measure-Object -Sum size
+        | Select-Object @{L='dir';E={$dir}},@{L='size';E={$_.Sum}}
     }
 
     # Part 1 Answer
