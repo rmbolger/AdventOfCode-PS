@@ -7,19 +7,6 @@ param(
 
 # https://adventofcode.com/2022/day/7
 
-    # a simple File class
-    class File {
-        [string]$name
-        [int]$size
-        File([string]$name,[int]$size) {
-            $this.name = $name
-            $this.size = $size
-        }
-        [string]ToString() {
-            return '{0}({1})' -f $this.name,$this.size
-        }
-    }
-
     # helper that returns the parent path of a given folder
     function UpDir {
         param([string]$dir)
@@ -46,44 +33,36 @@ param(
 
             # add the current dir to the hashtable if it doesn't exist
             if ($null -eq $fs[$curDir]) {
-                $fs[$curDir] = @() -as [Collections.Generic.List[File]]
+                $fs[$curDir] = 0
             }
         }
 
         # file
         '(\d+) (\S+)' {
 
-            # add the file to the current directory
-            $f = [File]::new($matches[2],$matches[1])
-            $fs[$curDir].Add($f)
+            # add the file size to the current directory
+            $fs[$curDir] += [int]$matches[1]
 
             # add it to all of the parent directories as well
             $tempDir = $curDir
             while ($tempDir -ne '/') {
                 $tempDir = UpDir $tempDir
-                $fs[$tempDir].Add($f)
+                $fs[$tempDir] += [int]$matches[1]
             }
         }
 
     }
 
-    # calculate the total size of each folder
-    $folderSizes = foreach ($dir in $fs.Keys) {
-        $fs[$dir]
-        | Measure-Object -Sum size
-        | Select-Object @{L='dir';E={$dir}},@{L='size';E={$_.Sum}}
-    }
-
-    # Part 1 Answer
-    $folderSizes
-    | Where-Object { $_.size -le 100000 }
-    | Measure-Object -Sum size
+    # Part 1
+    $fs.GetEnumerator()
+    | Where-Object { $_.Value -le 100000 }
+    | Measure-Object -Sum Value
     | Select-Object -Expand sum
 
     # Part 2
-    $usedSpace = ($folderSizes | Where-Object { $_.dir -eq '/' }).size
+    $usedSpace = $fs['/']
     $needed = 30000000 - (70000000 - $usedSpace)
-    $folderSizes
-    | Where-Object { $_.size -ge $needed }
-    | Sort-Object size
-    | Select-Object -First 1 -Expand size
+    $fs.GetEnumerator()
+    | Where-Object { $_.Value -ge $needed }
+    | Sort-Object Value
+    | Select-Object -First 1 -Expand Value
