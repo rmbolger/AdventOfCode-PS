@@ -13,6 +13,10 @@ $rows = Get-Content $InputFile
 $xMax = $rows[0].Length-1
 $yMax = $rows.Count-1
 
+# make a 2D array of coordinates so we can lookup keys by y/x value
+# rather than allocate new strings every time
+$coords = for ($y=0; $y-le$yMax; $y++) { $row = for ($x=0; $x-le$xMax; $x++) {"$x,$y"}; ,$row }
+
 class Tree {
     [string]$coord
     [int]$x
@@ -21,10 +25,10 @@ class Tree {
     [bool]$IsVisible=$true
     [int]$Score=0
 
-    Tree([int]$x,[int]$y,[char]$size) {
+    Tree([int]$x,[int]$y,[char]$size,[string]$coord) {
         $this.x = $x
         $this.y = $y
-        $this.coord = "$x,$y"
+        $this.coord = $coord
         $this.size = $size
     }
 
@@ -32,15 +36,15 @@ class Tree {
         return '{0}({1})' -f $this.coord,$this.size
     }
 
-    [void]SurveyNeighbors([hashtable]$trees,[int]$xMax,[int]$yMax) {
+    [void]SurveyNeighbors([hashtable]$trees,[int]$xMax,[int]$yMax,[object[]]$coords) {
 
         $visN=$visS=$visE=$visW=$true   # visible
         $vdN=$vdS=$vdE=$vdW=0           # view distance
 
         # walk north
         if ($this.y -ne 0) {
-            foreach ($yb in ($this.y-1)..0) {
-                $t = $trees["$($this.x),$yb"]
+            for ($yb=($this.y-1); $yb -ge 0; $yb--) {
+                $t = $trees[$coords[$yb][$this.x]]
                 $vdN++
                 if ($t.size -ge $this.size) {
                     $visN = $false
@@ -51,8 +55,8 @@ class Tree {
 
         # walk south
         if ($this.y -ne $yMax) {
-            foreach ($yb in ($this.y+1)..$yMax) {
-                $t = $trees["$($this.x),$yb"]
+            for ($yb=($this.y+1); $yb -le $yMax; $yb++) {
+                $t = $trees[$coords[$yb][$this.x]]
                 $vdS++
                 if ($t.size -ge $this.size) {
                     $visS = $false
@@ -63,8 +67,8 @@ class Tree {
 
         # walk east
         if ($this.x -ne $xMax) {
-            foreach ($xb in ($this.x+1)..$xMax) {
-                $t = $trees["$xb,$($this.y)"]
+            for ($xb=($this.x+1); $xb -le $xMax; $xb++) {
+                $t = $trees[$coords[$this.y][$xb]]
                 $vdE++
                 if ($t.size -ge $this.size) {
                     $visE = $false
@@ -75,8 +79,8 @@ class Tree {
 
         # walk west
         if ($this.x -ne 0) {
-            foreach ($xb in ($this.x-1)..0) {
-                $t = $trees["$xb,$($this.y)"]
+            for ($xb=($this.x-1); $xb -ge 0; $xb--) {
+                $t = $trees[$coords[$this.y][$xb]]
                 $vdW++
                 if ($t.size -ge $this.size) {
                     $visW = $false
@@ -100,7 +104,7 @@ foreach ($row in (Get-Content $InputFile)) {
     $x=-1
     foreach ($size in $row.ToCharArray()) {
         $x++
-        $t = [Tree]::New($x,$y,$size)
+        $t = [Tree]::New($x,$y,$size,$coords[$y][$x])
         $trees[$t.coord] = $t
     }
 }
@@ -109,7 +113,7 @@ foreach ($row in (Get-Content $InputFile)) {
 # is visible from outside and how many neighbors it has
 # that are visible
 $trees.Values | ForEach-Object {
-    $_.SurveyNeighbors($trees,$xMax,$yMax)
+    $_.SurveyNeighbors($trees,$xMax,$yMax,$coords)
 }
 
 # Part 1
