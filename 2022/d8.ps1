@@ -18,83 +18,82 @@ class Tree {
     [int]$x
     [int]$y
     [char]$size
-    [char[]]$TreesN
-    [char[]]$TreesS
-    [char[]]$TreesE
-    [char[]]$TreesW
-    [bool]$IsEdge=$false
+    [bool]$IsVisible=$true
+    [int]$Score=0
+
     Tree([int]$x,[int]$y,[char]$size) {
         $this.x = $x
         $this.y = $y
         $this.coord = "$x,$y"
         $this.size = $size
     }
+
     [string]ToString() {
         return '{0}({1})' -f $this.coord,$this.size
     }
-    [void]FetchNeighbors([hashtable]$trees,[int]$xMax,[int]$yMax) {
+
+    [void]SurveyNeighbors([hashtable]$trees,[int]$xMax,[int]$yMax) {
+
+        $visN=$visS=$visE=$visW=$true   # visible
+        $vdN=$vdS=$vdE=$vdW=0           # view distance
+
+        # walk north
         if ($this.y -ne 0) {
-            $this.TreesN = foreach ($yb in ($this.y-1)..0) {
-                $trees["$($this.x),$yb"].size
+            foreach ($yb in ($this.y-1)..0) {
+                $t = $trees["$($this.x),$yb"]
+                $vdN++
+                if ($t.size -ge $this.size) {
+                    $visN = $false
+                    break
+                }
             }
         }
-        else { $this.IsEdge = $true }
+
+        # walk south
         if ($this.y -ne $yMax) {
-            $this.TreesS = foreach ($yb in ($this.y+1)..$yMax) {
-                $trees["$($this.x),$yb"].size
+            foreach ($yb in ($this.y+1)..$yMax) {
+                $t = $trees["$($this.x),$yb"]
+                $vdS++
+                if ($t.size -ge $this.size) {
+                    $visS = $false
+                    break
+                }
             }
         }
-        else { $this.IsEdge = $true }
+
+        # walk east
         if ($this.x -ne $xMax) {
-            $this.TreesE = foreach ($xb in ($this.x+1)..$xMax) {
-                $trees["$xb,$($this.y)"].size
+            foreach ($xb in ($this.x+1)..$xMax) {
+                $t = $trees["$xb,$($this.y)"]
+                $vdE++
+                if ($t.size -ge $this.size) {
+                    $visE = $false
+                    break
+                }
             }
         }
-        else { $this.IsEdge = $true }
+
+        # walk west
         if ($this.x -ne 0) {
-            $this.TreesW = foreach ($xb in ($this.x-1)..0) {
-                $trees["$xb,$($this.y)"].size
+            foreach ($xb in ($this.x-1)..0) {
+                $t = $trees["$xb,$($this.y)"]
+                $vdW++
+                if ($t.size -ge $this.size) {
+                    $visW = $false
+                    break
+                }
             }
         }
-        else { $this.IsEdge = $true }
+
+        $this.IsVisible = $visN -or $visS -or $visE -or $visW
+        $this.Score = $vdN * $vdS * $vdE * $vdW
     }
-    [bool]IsVisible() {
-        if ($this.IsEdge -or
-            -not ($this.TreesN | Where-Object { $_ -ge $this.size }) -or
-            -not ($this.TreesS | Where-Object { $_ -ge $this.size }) -or
-            -not ($this.TreesE | Where-Object { $_ -ge $this.size }) -or
-            -not ($this.TreesW | Where-Object { $_ -ge $this.size })
-        ) {
-            return $true
-        }
-        return $false
-    }
-    [int]CalcScore() {
-        # edges automatically 0
-        if ($this.IsEdge) { return 0 }
-        $vdN=$vdS=$vdE=$vdW=0
-        foreach ($tSize in $this.TreesN) {
-            if ($tSize -lt $this.size) { $vdN++ }
-            else { $vdN++; break }
-        }
-        foreach ($tSize in $this.TreesS) {
-            if ($tSize -lt $this.size) { $vdS++ }
-            else { $vdS++; break }
-        }
-        foreach ($tSize in $this.TreesE) {
-            if ($tSize -lt $this.size) { $vdE++ }
-            else { $vdE++; break }
-        }
-        foreach ($tSize in $this.TreesW) {
-            if ($tSize -lt $this.size) { $vdW++ }
-            else { $vdW++; break }
-        }
-        return $vdN*$vdS*$vdE*$vdW
-    }
+
 }
 
+# populate a hashtable with the coordinate keys
+# and Tree objects which includes the size
 $trees = @{}
-
 $y=-1
 foreach ($row in (Get-Content $InputFile)) {
     $y++
@@ -106,25 +105,24 @@ foreach ($row in (Get-Content $InputFile)) {
     }
 }
 
-# populate the neighbor sizes
-$trees.GetEnumerator() | ForEach-Object {
-    $_.Value.FetchNeighbors($trees,$xMax,$yMax)
+# survey the neighbors to calculate whether each tree
+# is visible from outside and how many neighbors it has
+# that are visible
+$trees.Values | ForEach-Object {
+    $_.SurveyNeighbors($trees,$xMax,$yMax)
 }
 
 # Part 1
-if (-not $NoPart1) {
-    # find visible trees in the grid
-    $trees.Values
-    | Where-Object { $_.IsVisible() }
-    | Measure-Object
-    | Select-Object -Expand Count
-}
+
+# find visible trees in the grid
+$trees.Values
+| Where-Object { $_.IsVisible }
+| Measure-Object
+| Select-Object -Expand Count
 
 # Part 2
-if (-not $NoPart2) {
-    # find the highest score in the grid
-    $trees.Values
-    | Select-Object @{L='score';E={$_.CalcScore()}}
-    | Sort-Object -Descending score
-    | Select-Object -Expand score -First 1
-}
+
+# find the highest score in the grid
+$trees.Values
+| Sort-Object -Descending Score
+| Select-Object -Expand Score -First 1
