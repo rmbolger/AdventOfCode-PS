@@ -10,7 +10,6 @@ param(
 class EPhone {
     [int]$cycle = 1
     [int]$x = 1
-    [int[]]$sprite = 0,1,2
     [char[][]]$crt = @(
         '                                        '.ToCharArray(),
         '                                        '.ToCharArray(),
@@ -25,15 +24,15 @@ class EPhone {
     [void]DoCycle([int]$Add) {
 
         # draw the next pixel
-        if (($this.cycle-1)%40 -in $this.sprite) {
-            $this.crt[$this.crtLine][($this.cycle-1)%40] = '#'
+        $drawPos = ($this.cycle-1) % 40
+        if (($this.x-1) -le $drawPos -and $drawPos -le ($this.x+1)) {
+            $this.crt[$this.crtLine][$drawPos] = '#'
         }
         #Write-Verbose "c$($this.cycle) x$($this.x) $Add - $($this.crt[$this.crtLine] -join '') - row $($this.crtLine)"
 
-        # If we have a value, add it and move the sprite
+        # If we have a value
         if ($Add -ne 0) {
             $this.x += $Add
-            $this.sprite = ($this.x-1),$this.x,($this.x+1)
         }
 
         # move to next CRT line if necessary
@@ -53,18 +52,19 @@ class EPhone {
     }
 }
 
+# Run the instructions
 $phone = [EPhone]::new()
-
 switch -Regex (Get-Content $InputFile) {
     'noop' {
         $phone.DoCycle(0)
     }
     'addx (\S+)' {
-        #$addx = $matches[1]
         $phone.DoCycle(0)
         $phone.DoCycle($matches[1])
     }
 }
+
+# Part 1
 $phone.signalSum
 
 # Part 2 Output
