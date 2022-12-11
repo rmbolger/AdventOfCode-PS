@@ -21,7 +21,7 @@ class Monkey {
         $this.items = [Collections.Generic.Queue[long]]::new(
             [long[]]($lines[1].Substring(18)|Invoke-Expression)
         )
-        $this.operation = $lines[2].Substring(13).Replace('new','$i').Replace('old','$i')
+        $this.operation = $lines[2].Substring(23)
         $this.divTest = $lines[3].Substring(21)
         $this.throwIndex = @(
             $lines[4].Substring(29),
@@ -44,7 +44,13 @@ class Monkey {
             $this.inspect++
 
             # run the worry increase operation
-            $this.operation | Invoke-Expression
+            if ($this.operation -eq '* old') {
+                $i *= $i
+            } elseif ($this.operation[0] -eq '*') {
+                $i *= $this.operation.Substring(2)
+            } else {
+                $i += $this.operation.Substring(2)
+            }
 
             # Part 1 (no LCM) just divide by 3 rounded down
             # Part 2 take the modulo of the LCM to "keep our
