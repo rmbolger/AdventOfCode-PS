@@ -30,7 +30,7 @@ class EPhone {
         }
         #Write-Verbose "c$($this.cycle) x$($this.x) $Add - $($this.crt[$this.crtLine] -join '') - row $($this.crtLine)"
 
-        # If we have a value
+        # update X if we have a value
         if ($Add -ne 0) {
             $this.x += $Add
         }
@@ -43,7 +43,7 @@ class EPhone {
 
         $this.cycle++
 
-        # emit Part 1 signal strength
+        # add signal strength to sum for Part 1
         if (($this.cycle-20)%40 -eq 0) {
             $this.signalSum += $this.cycle * $this.x
             #Write-Verbose "c$($this.cycle) * x$($this.x) = $($this.cycle*$this.x)"
