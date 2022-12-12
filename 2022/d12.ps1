@@ -7,7 +7,7 @@ param(
 
 # https://adventofcode.com/2022/day/12
 
-# Adapted from very similar solution from 2021 Day 15
+# Adapted from 2021's solution for Day 15
 
 # Both Part 1 and 2 can be solved with a breadth-first search (Dijkstra)
 # implementation. The implementations are almost identical if you start
