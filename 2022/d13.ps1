@@ -109,12 +109,8 @@ class Packet : IComparable
 
 # Part 1
 
-$pIndex = 0
-$indices = foreach ($pair in $pairs) {
-    # increment the index
-    $pIndex++
-
-    $lRaw,$rRaw = $pair -split "`n"
+$indices = foreach ($pIndex in (1..$pairs.Count)) {
+    $lRaw,$rRaw = $pairs[$pIndex] -split "`n"
     if ([Packet]$lRaw -lt [Packet]$rRaw) {
         $pIndex
     }
