@@ -110,7 +110,7 @@ class Packet : IComparable
 # Part 1
 
 $indices = foreach ($pIndex in (1..$pairs.Count)) {
-    $lRaw,$rRaw = $pairs[$pIndex] -split "`n"
+    $lRaw,$rRaw = $pairs[$pIndex-1] -split "`n"
     if ([Packet]$lRaw -lt [Packet]$rRaw) {
         $pIndex
     }
