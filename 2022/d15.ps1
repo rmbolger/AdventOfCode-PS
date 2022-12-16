@@ -86,9 +86,6 @@ function Find-DistressBeacon {
         # grab and sort all of the x-ranges that have coverage in this row
         $ranges = foreach ($s in $sensors) {
             if ($r = $s.GetXCoverage($i)) {
-                # # reduce each range to within the puzzle bounds
-                # if ($r[0] -lt 0) { $r[0] = 0 }
-                # if ($r[1] -gt $Part2Size) { $r[1] = $Part2Size }
                 ,$r
             }
         }
